@@ -1,0 +1,12 @@
+const sum = 10 + 10;
+const difference = 45 - 33;
+const product = 8 * 10;
+const product2 = 2.5 * 2.0;
+const qwtient = 66 / 33;
+const remaider = 12 % 5;
+console.log(sum);
+console.log(difference);
+console.log(product);
+console.log(product2);
+console.log(qwtient);
+console.log(remaider);

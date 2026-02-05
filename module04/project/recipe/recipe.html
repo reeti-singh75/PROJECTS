@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #Recipeform {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-top: 10%;
+            height: 25%;
+            width: 30%;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="openCreateBtn">Create</button>
+    <div id="CreateNewRecipe">
+        <form id="recipeform" style="display: none;">
+            <label for="name">Name</label><br><br>
+            <input type="text" id="name" placeholder=" Recipe name" required><br><br>
+
+            <label for="ingredient">Ingredients</label><br><br>
+            <input type="text" id="ingredients" placeholder="ingredients name" required><br><br>
+
+            <label for="image">Upload Photo</label><br><br>
+            <input type="file" id="image" accept="image/*" required><br><br>
+
+            <label for="description">Description</label><br><br>
+            <input type="text" id="description" placeholder="Description" required><br><br>
+
+             <label for="calorie ">Calorie </label><br><br>
+            <input type="text" id="calorie" placeholder="calorie " required><br><br>
+
+            <button type="button" id="addbtn">Add</button>
+            <button type="button" id="backbtn">Back</button>
+        </form>
+    </div>
+    <div>
+        <button id="showAllBtn">Show All</button>
+        <button id="showFavBtn">⭐️ Show Favorites</button>
+    </div>
+
+    <div id="container"></div>
+    <script src="script.js"></script>
+</body>
+
+</html>

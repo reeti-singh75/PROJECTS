@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Recipe Web</title>
+</head>
+
+<body>
+    <!-- <h2>Check Local Storage Difference</h2>
+    <button onclick="saveWithoutJSON()">Save Without JSON.stringify</button>
+    <button onclick="saveWithJSON()">Save With JSON.stringify</button>
+    <button onclick="readData()">Read Data</button> -->
+    <!-- <input name="name" placeholder="Enter recipe name" id="recipy"> -->
+    <!-- <button onclick="getRecipe()">Get Recipe</button> -->
+
+
+    <h2>Add Recipe</h2>
+
+    <!-- Input fields -->
+    <input id="name" placeholder="Recipe Name"><br><br>
+    <input id="description" placeholder="Description"><br><br>
+    <input id="ingredients" placeholder="Ingredients"><br><br>
+    <input id="calories" placeholder="Calories"><br><br>
+    <button onclick="getRecipe()">Get Recipe</button>
+
+    <script>
+        function getRecipe() {
+            let user = {
+                // name: document.getElementById("recipy").value
+
+                recipe: document.getElementById("name").value,
+                description: document.getElementById("description").value,
+                ingredient: document.getElementById("ingredients").value,
+                calories: document.getElementById("calories").value,
+            }
+            localStorage.setItem("user", JSON.stringify(user));
+            let data = JSON.parse(localStorage.getItem("user"));
+            console.log(data); // object form
+
+        }
+    </script>
+</body>
+
+</html>
