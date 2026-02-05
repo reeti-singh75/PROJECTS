@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Escape Room Game</title>
+    <link rel="stylesheet" href="1.css" />
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>🔐 Escape Room</h1>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <button onclick="startGame()">Start Game</button>
+        <div id="game-section" style="display: none;">
+            <div id="timer">Time Left: 30s</div>
+
+            <div class="question">
+                <p>1. Enter the password to unlock:</p>
+                <input id="puzzle1" />
+                <button onclick="checkPuzzle1()">Submit</button>
+                <p id="result1"></p>
+            </div>
+
+            <div class="question">
+                <p>2. Solve: 24 + 15 - 9</p>
+                <input id="puzzle2" />
+                <button onclick="checkPuzzle2()">Submit</button>
+                <p id="result2"></p>
+            </div>
+
+            <div class="question">
+                <p>3. I speak without a mouth… Who am I?</p>
+                <input id="puzzle3" />
+                <button onclick="checkPuzzle3()">Submit</button>
+                <p id="result3"></p>
+            </div>
+
+            <div id="final-score"></div>
+        </div>
+    </div>
+    <script src=".js"></script>
+</body>
+
+</html>

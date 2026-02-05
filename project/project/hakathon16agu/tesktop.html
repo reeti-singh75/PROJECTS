@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Web OS</title>
+    <link rel="stylesheet" href="tesktop.css">
+</head>
+
+<body>
+    <div id="desktop"></div>
+
+    <!-- Notes Window -->
+    <div class="window" id="notesWindow">
+        <div class="window-header">
+            Notes <button class="close-btn">X</button>
+        </div>
+        <div class="window-body">
+            <textarea id="notesText" placeholder="Type your notes..."></textarea>
+        </div>
+    </div>
+
+    <!-- Clock Window -->
+    <div class="window" id="clockWindow">
+        <div class="window-header">
+            Clock <button class="close-btn">X</button>
+        </div>
+        <div class="window-body">
+            <h2 id="clock"></h2>
+        </div>
+    </div>
+
+    <div id="taskbar"></div>
+
+    <script src="tesktop.js"></script>
+</body>
+
+</html>

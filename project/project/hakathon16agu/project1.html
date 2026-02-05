@@ -1,0 +1,308 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Desktop</title>
+    <link rel="stylesheet" href="project1.css">
+</head>
+
+<body>
+
+
+    <div class="sidebar">
+        <div class="app-icon" onclick="openApp('calculator')">🔢</div>
+        <div class="app-icon" onclick="openApp('notepad')">📓</div>
+        <div class="app-icon" onclick="openApp('clock')">🕒</div>
+    </div>
+
+
+    <div class="desktop">
+
+
+        <div id="calculator" class="app-window">
+            <div class="app-header">
+                <span>Calculator</span>
+                <button class="close-btn" onclick="minimizeApp('calculator')">-</button>
+                <button class="close-btn" onclick="maximizeApp('calculator')">[]</button>
+                <button class="close-btn" onclick="closeApp('calculator')">x</button>
+            </div>
+            <div class="app-content">
+                <p>Calculator coming soon...</p>
+            </div>
+        </div>
+
+
+        <div id="notepad" class="app-window">
+            <div class="app-header">
+                <span>Notepad</span>
+                <button class="close-btn" onclick="minimizeApp('notepad')">-</button>
+                <button class="close-btn" onclick="maximizeApp('notepad')">[]</button>
+                <button class="close-btn" onclick="closeApp('notepad')">x</button>
+            </div>
+            <div class="app-content">
+                <textarea placeholder="Write your notes here..."></textarea>
+            </div>
+        </div>
+
+
+        <div id="clock" class="app-window">
+            <div class="app-header">
+                <span>Clock</span>
+                <button class="close-btn" onclick="minimizeApp('clock')">-</button>
+                <button class="close-btn" onclick="maximizeApp('clock')">[]</button>
+                <button class="close-btn" onclick="closeApp('clock')">x</button>
+            </div>
+            <div class="app-content">
+                <div class="clock" id="clockDisplay"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="project.js"></script>
+</body>
+
+</html> -->
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Dock with Apps</title>
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        /* Sidebar / Dock */
+        
+        .dock {
+            position: fixed;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 15px;
+        }
+        
+        .dock img {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .dock img:hover {
+            transform: scale(1.2);
+        }
+        /* Window */
+        
+        .app-window {
+            position: absolute;
+            top: 80px;
+            left: 100px;
+            width: 400px;
+            height: 300px;
+            background: #f8dff0;
+            color: black;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            display: none;
+            flex-direction: column;
+        }
+        
+        .title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #dcbfe2;
+            padding: 5px 10px;
+            height: 40px;
+            border-bottom: 2px solid #ccc;
+        }
+        
+        .btns {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            font-size: 18px;
+            cursor: pointer;
+            color: #333;
+        }
+        
+        .btn:hover {
+            color: red;
+        }
+        
+        .app-content {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+        }
+        /* Calculator */
+        
+        #calculatorApp input {
+            width: 90%;
+            height: 40px;
+            font-size: 20px;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        
+        #calculatorApp button {
+            width: 60px;
+            height: 40px;
+            font-size: 18px;
+            margin: 5px;
+        }
+        /* Notepad */
+        
+        #notepadApp textarea {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            font-size: 16px;
+        }
+        /* Clock */
+        
+        #clockDisplay {
+            font-size: 40px;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Dock -->
+    <div class="dock">
+        <!-- Calculator -->
+        <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" alt="Calculator" onclick="openApp('calculatorApp')">
+
+        <!-- Digital Clock -->
+        <img src="https://cdn-icons-png.flaticon.com/512/992/992700.png" alt="Digital Clock" onclick="openApp('clockApp')">
+
+        <!-- Notepad -->
+        <img src="https://cdn-icons-png.flaticon.com/512/3159/3159310.png" alt="Notepad" onclick="openApp('notepadApp')">
+    </div>
+
+    <!-- Calculator App -->
+    <div class="app-window" id="calculatorApp">
+        <div class="title-bar">
+            <span>Calculator</span>
+            <div class="btns">
+                <span class="btn" onclick="closeApp('calculatorApp')">×</span>
+            </div>
+        </div>
+        <div class="app-content">
+            <input type="text" id="calcDisplay" readonly>
+            <br>
+            <button onclick="press('7')">7</button>
+            <button onclick="press('8')">8</button>
+            <button onclick="press('9')">9</button>
+            <button onclick="press('/')">÷</button>
+            <br>
+            <button onclick="press('4')">4</button>
+            <button onclick="press('5')">5</button>
+            <button onclick="press('6')">6</button>
+            <button onclick="press('*')">×</button>
+            <br>
+            <button onclick="press('1')">1</button>
+            <button onclick="press('2')">2</button>
+            <button onclick="press('3')">3</button>
+            <button onclick="press('-')">−</button>
+            <br>
+            <button onclick="press('0')">0</button>
+            <button onclick="press('.')">.</button>
+            <button onclick="calculate()">=</button>
+            <button onclick="press('+')">+</button>
+            <br>
+            <button onclick="clearCalc()">C</button>
+        </div>
+    </div>
+
+    <!-- Clock App -->
+    <div class="app-window" id="clockApp">
+        <div class="title-bar">
+            <span>Digital Clock</span>
+            <div class="btns">
+                <span class="btn" onclick="closeApp('clockApp')">×</span>
+            </div>
+        </div>
+        <div class="app-content">
+            <div id="clockDisplay"></div>
+        </div>
+    </div>
+
+    <!-- Notepad App -->
+    <div class="app-window" id="notepadApp">
+        <div class="title-bar">
+            <span>Notepad</span>
+            <div class="btns">
+                <span class="btn" onclick="closeApp('notepadApp')">×</span>
+            </div>
+        </div>
+        <div class="app-content">
+            <textarea placeholder="Write your notes here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        // Open App
+        function openApp(appId) {
+            document.getElementById(appId).style.display = "flex";
+        }
+
+        // Close App
+        function closeApp(appId) {
+            document.getElementById(appId).style.display = "none";
+        }
+
+        // Calculator Logic
+        function press(value) {
+            document.getElementById("calcDisplay").value += value;
+        }
+
+        function calculate() {
+            let exp = document.getElementById("calcDisplay").value;
+            try {
+                document.getElementById("calcDisplay").value = eval(exp);
+            } catch {
+                document.getElementById("calcDisplay").value = "Error";
+            }
+        }
+
+        function clearCalc() {
+            document.getElementById("calcDisplay").value = "";
+        }
+
+        // Clock Logic
+        function updateClock() {
+            let now = new Date();
+            let time = now.toLocaleTimeString();
+            document.getElementById("clockDisplay").textContent = time;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+
+</body>
+
+</html>

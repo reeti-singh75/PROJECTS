@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <body>
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Age calcular</title>
+        <style>
+            * {
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            
+            .container {
+                width: 420px;
+                padding: 20px;
+                margin: 100px auto;
+                text-align: center;
+                background-color: rgb(244, 165, 165);
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgb(10, 10, 10);
+            }
+            
+            h1 {
+                color: rgb(74, 12, 12);
+                font-size: 40px;
+                margin-bottom: 50px;
+            }
+            
+            input[type="date"] {
+                width: 90%;
+                padding: 10px;
+                margin: 20px 20;
+                border: none;
+            }
+            
+            input[type="date"]:focus {
+                outline: none;
+                font-size: 18px;
+            }
+            
+            label {
+                font-size: 15px;
+                color: rgb(17, 17, 17);
+                text-transform: capitalize;
+            }
+            
+            button {
+                padding: 10px 20px;
+                background-color: rgb(223, 223, 15);
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: 400;
+                cursor: pointer;
+            }
+            
+            button:hover {
+                background-color: black;
+            }
+            
+            #result {
+                margin-top: 20px;
+                font-size: 1.2rem;
+            }
+            
+            .box {
+                padding: 20px;
+                background-color: rgb(13, 10, 10);
+                color: rgb(134, 134, 240);
+                border: 10px;
+            }
+        </style>
+</head>
+<div class="container">
+    <h1>Age calcular</h1>
+    <label for="dob">Enter your date of birth</label>
+    <input type="date" id="dob" />
+    <button id="calculate">Calculator Age</button>
+    <div id="result"></div>
+</div>
+<script>
+    document.getElementById("calculate").addEventListener("click", function() {
+        const dob = document.getElementById("dob").value;
+        if (!dob) {
+            alert("Please enter your date of birth.");
+            return;
+        }
+
+        const dobDate = new Date(dob);
+        const now = new Date();
+
+        let years = now.getFullYear() - dobDate.getFullYear();
+        let months = now.getMonth() - dobDate.getMonth();
+        let days = now.getDate() - dobDate.getDate();
+
+        if (days < 0) {
+            months--;
+            days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        }
+
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+
+        document.getElementById("result").innerText = `Your age is ${years} years, ${months} months, and ${days} days.`;
+    });
+</script>
+
+
+
+</body>
+
+</html>

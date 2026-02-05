@@ -1,0 +1,156 @@
+/* 🌈 Global Styling */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+
+/* ================= CLOCK ================= */
+
+body.clock-bg {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.clock {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    padding: 40px 60px;
+    border-radius: 20px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.time {
+    font-size: 4em;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.date {
+    font-size: 1.5em;
+    margin-top: 10px;
+    color: #f0f0f0;
+}
+
+@media(max-width: 500px) {
+    .clock {
+        padding: 30px 40px;
+    }
+    .time {
+        font-size: 3em;
+    }
+    .date {
+        font-size: 1.2em;
+    }
+}
+
+
+/* ================= CALCULATOR ================= */
+
+body.calc-bg {
+    background: #1e1e2f;
+}
+
+.calculator {
+    background: #2c2c3c;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0px 0px 10px black;
+}
+
+#display {
+    width: 100%;
+    height: 50px;
+    font-size: 20px;
+    text-align: right;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 60px);
+    grid-gap: 10px;
+}
+
+button {
+    height: 60px;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #00bfff;
+    color: white;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #0099cc;
+}
+
+.equal {
+    grid-column: span 2;
+    background: #ff5722;
+}
+
+.equal:hover {
+    background: #e64a19;
+}
+
+
+/* ================= NOTEPAD ================= */
+
+body.note-bg {
+    background: #1e1e2f;
+    color: white;
+}
+
+.container {
+    width: 500px;
+    background: #2c2c3c;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px black;
+    text-align: center;
+}
+
+h2 {
+    margin-bottom: 15px;
+}
+
+textarea {
+    width: 100%;
+    height: 300px;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    resize: none;
+}
+
+.save-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #00bfff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    color: white;
+    transition: 0.3s;
+}
+
+.save-btn:hover {
+    background: #0099cc;
+}

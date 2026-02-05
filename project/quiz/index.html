@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Group Quiz</title>
+    <!-- Load Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ENHANCED BODY STYLING - Subtle gradient background */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ENHANCED CARD STYLING */
+        #quiz-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        /* Styles for visual feedback */
+        .correct-answer { background-color: #059669 !important; color: white !important; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.5); pointer-events: none; transform: scale(1.02); }
+        .wrong-answer { background-color: #dc2626 !important; color: white !important; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.5); pointer-events: none; transform: scale(1.02); }
+        .disabled-button { pointer-events: none; opacity: 0.6; }
+        .selection-button { font-size: 1.125rem; font-weight: 700; padding: 1rem 1.5rem; border-radius: 0.75rem; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .selection-button:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); }
+        
+        /* Timer animation emphasis */
+        #timer-display.low-time { animation: pulse-red 0.8s infinite; }
+        @keyframes pulse-red { 0%, 100% { background-color: #fca5a5; } 50% { background-color: #ef4444; } }
+
+        /* Custom colors for buttons (using gradients) */
+        .btn-blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+        .btn-green { background: linear-gradient(90deg, #10b981, #059669); }
+        .btn-red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .option-button { transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #d1d5db; }
+        .option-button:hover { background-color: #eef2ff !important; }
+        
+        /* Custom selector styling */
+        .selector-box { border: 2px solid #e0e7ff; background-color: #f9fafb; transition: all 0.2s; cursor: pointer;}
+        .selector-box:hover { border-color: #a5b4fc; background-color: #eef2ff;}
+        .selector-box.selected { border-color: #4f46e5; background-color: #e0e7ff; box-shadow: 0 0 0 3px #c7d2fe;}
+    </style>
+</head>
+<body>
+
+    <div id="quiz-container" class="p-8 md:p-10 rounded-xl shadow-2xl w-full max-w-lg">
+        
+        <!-- Firebase Status -->
+        <div id="firebase-status" class="text-xs text-center mb-4 p-2 rounded-lg text-gray-700 bg-yellow-100" style="display: none;">
+            <!-- Status messages here -->
+        </div>
+        
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Group Quiz Challenge</h1>
+        <p class="text-sm text-gray-500 mb-6 text-center">User ID: <span id="user-id-display">Loading...</span></p>
+
+        <!-- NEW: 0. Name Input Screen -->
+        <div id="name-input-screen" class="text-center" style="display: none;">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Enter Your Display Name (अपना नाम दर्ज करें)</h2>
+            <p class="text-gray-600 mb-4">This name will be used in the lobby and scoreboard.</p>
+            <input type="text" id="user-name-input" placeholder="Your Name" 
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 mb-4">
+            <button onclick="saveNameAndStart()" class="selection-button btn-blue text-white w-full shadow-xl">
+                Continue
+            </button>
+        </div>
+
+        <!-- 1. Home Screen -->
+        <div id="home-screen" class="text-center" style="display: none;">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Welcome, <span id="greeting-name">Player!</span></h2>
+            <p class="text-gray-600 mb-8">Test your knowledge against your friends in real-time.</p>
+            <button onclick="startQuizFlow()" class="selection-button btn-blue text-white w-full shadow-xl">
+                Start Quiz (क्विज़ शुरू करें)
+            </button>
+        </div>
+
+        <!-- 2. Max Players Selection Screen -->
+        <div id="max-players-selection-screen" style="display: none;">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">1. Select Maximum Players (अधिकतम खिलाड़ी चुनें)</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="selectMaxPlayers(1)" class="selection-button bg-blue-500 hover:bg-blue-600 text-white">1 Player (Solo)</button>
+                    <button onclick="selectMaxPlayers(5)" class="selection-button bg-green-500 hover:bg-green-600 text-white">5 Players (Group)</button>
+                    <button onclick="selectMaxPlayers(10)" class="selection-button bg-purple-500 hover:bg-purple-600 text-white">10 Players (Team)</button>
+                    <button onclick="document.getElementById('custom-player-input-container').style.display='block';" class="selection-button bg-yellow-500 hover:bg-yellow-600 text-white">Custom (1-50)</button>
+                </div>
+                <div id="custom-player-input-container" class="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50" style="display:none;">
+                    <label for="custom-player-count" class="block text-sm font-medium text-gray-700 mb-2">Enter Player Count (1-50):</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="custom-player-count" min="1" max="50" value="5"
+                               class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                        <button onclick="selectMaxPlayers(document.getElementById('custom-player-count').value)" 
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. Host/Join Screen -->
+        <div id="host-join-screen" style="display: none;">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">2. Host or Join?</h2>
+            <p class="text-lg font-medium text-indigo-600 mb-6">Max Players: <span id="max-players-display">--</span></p>
+            
+            <div class="space-y-6">
+                <button onclick="showHostConfigScreen()" class="selection-button btn-green text-white w-full shadow-xl">
+                    Host New Game (Configure Quiz)
+                </button>
+                
+                <p class="text-gray-500 font-bold">--- OR ---</p>
+
+                <div class="p-4 bg-gray-50 rounded-lg border">
+                    <input type="text" id="game-id-input" placeholder="Enter Game ID to Join" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 mb-3">
+                    <button onclick="joinGame()" class="selection-button w-full btn-blue text-white shadow-xl py-3">
+                        Join Existing Game
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Host Configuration Screen (Only for Host) -->
+        <div id="host-quiz-config-screen" style="display: none;">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">3. Configure Your Quiz (Host Only)</h2>
+            
+            <!-- Topic Selection -->
+            <div class="mb-6">
+                <h3 class="font-bold text-xl text-gray-700 mb-3">Topic:</h3>
+                <div id="topic-selector" class="grid grid-cols-3 gap-3">
+                    <div class="selector-box p-3 rounded-lg text-center" data-topic="HTML" onclick="selectHostConfig('topic', 'HTML', this)">HTML</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-topic="CSS" onclick="selectHostConfig('topic', 'CSS', this)">CSS</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-topic="JavaScript" onclick="selectHostConfig('topic', 'JavaScript', this)">JavaScript</div>
+                </div>
+            </div>
+
+            <!-- Level Selection -->
+            <div class="mb-6">
+                <h3 class="font-bold text-xl text-gray-700 mb-3">Level:</h3>
+                <div id="level-selector" class="grid grid-cols-3 gap-3">
+                    <div class="selector-box p-3 rounded-lg text-center" data-level="Basic" onclick="selectHostConfig('level', 'Basic', this)">Basic</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-level="Intermediate" onclick="selectHostConfig('level', 'Intermediate', this)">Intermediate</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-level="Advanced" onclick="selectHostConfig('level', 'Advanced', this)">Advanced</div>
+                </div>
+            </div>
+            
+            <!-- Question Count Selection (आपका अनुरोधित फीचर) -->
+            <div class="mb-6">
+                <h3 class="font-bold text-xl text-gray-700 mb-3">Question Count (प्रश्नों की संख्या):</h3>
+                <div id="length-selector" class="grid grid-cols-4 gap-3">
+                    <div class="selector-box p-3 rounded-lg text-center" data-length="10" onclick="selectHostConfig('length', 10, this)">10</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-length="20" onclick="selectHostConfig('length', 20, this)">20</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-length="30" onclick="selectHostConfig('length', 30, this)">30</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-length="50" onclick="selectHostConfig('length', 50, this)">50</div>
+                </div>
+            </div>
+            
+            <!-- Timer Selection -->
+            <div class="mb-8">
+                <h3 class="font-bold text-xl text-gray-700 mb-3">Time Limit (Seconds/Q):</h3>
+                <div id="timer-selector" class="grid grid-cols-4 gap-3">
+                    <div class="selector-box p-3 rounded-lg text-center" data-timer="10" onclick="selectHostConfig('timer', 10, this)">10s</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-timer="20" onclick="selectHostConfig('timer', 20, this)">20s</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-timer="30" onclick="selectHostConfig('timer', 30, this)">30s</div>
+                    <div class="selector-box p-3 rounded-lg text-center" data-timer="60" onclick="selectHostConfig('timer', 60, this)">60s</div>
+                </div>
+            </div>
+
+            <button onclick="hostGame()" id="start-host-button" class="selection-button btn-green text-white w-full shadow-xl disabled-button" disabled>
+                Start Game & Get ID (4. Host)
+            </button>
+            <p id="config-error" class="text-sm text-red-500 mt-2" style="display: none;">Please select all options.</p>
+
+        </div>
+        
+        <!-- 5. Game Room (Quiz Area - Initially Hidden) -->
+        <div id="game-area" style="display: none;">
+            
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Game ID: <span id="current-game-id" class="text-indigo-600"></span></h2>
+            <p id="host-message" class="text-sm text-center text-red-500 font-semibold mb-3" style="display: none;">
+                Waiting for the host to start the game...
+            </p>
+
+            <!-- ENHANCED STATUS BAR (आपका स्कोर और टाइमर) -->
+            <div class="flex justify-between items-center bg-indigo-50 p-4 rounded-lg mb-4 shadow-md border border-indigo-200">
+                <!-- Current Score Display (बड़ा और बोल्ड) -->
+                <span class="text-md font-semibold text-gray-700 flex items-center">
+                    🎯 Your Score: 
+                    <span id="current-score" class="font-extrabold text-green-700 text-3xl ml-2">0</span>
+                </span>
+                
+                <!-- Timer Display (बड़ा और बोल्ड) -->
+                <span class="text-md font-semibold text-gray-700 flex items-center">
+                    ⏰ Time Left: 
+                    <span id="timer-display" class="font-extrabold text-red-600 text-3xl ml-2 bg-red-100 px-3 py-1 rounded-lg">--</span>s
+                </span>
+            </div>
+
+            <!-- Quiz Metadata -->
+            <p class="text-sm font-medium text-gray-600 mb-4">
+                Limit: <span id="limit-display" class="font-bold text-indigo-700">--</span> | Q/Length: 
+                <span id="current-q-num" class="font-bold">1</span> / <span id="total-q-num" class="font-bold">10</span>
+            </p>
+            
+            <!-- Question Text Container -->
+            <h3 id="question-text" class="text-xl font-extrabold text-gray-900 mb-6 border-b pb-3"></h3>
+            
+            <!-- Options Container -->
+            <div id="options-container" class="space-y-3">
+                <!-- Buttons will be injected here by JavaScript -->
+            </div>
+
+            <!-- Live Player Scores (सबको दिखना चाहिए) -->
+            <div class="mt-6 p-3 bg-indigo-100 rounded-lg shadow-inner border border-indigo-300">
+                <h4 class="font-extrabold text-indigo-800 mb-2 border-b border-indigo-300 pb-1">Live Scores (सभी खिलाड़ी):</h4>
+                <div id="player-scores-list" class="space-y-1 text-sm max-h-40 overflow-y-auto">
+                    <!-- Player score list will be updated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 7. Lobby Screen (For Host/Join - Dynamically populated in JS) -->
+        <div id="lobby-screen" style="display: none;"></div>
+        
+        <!-- 8. Results Screen (Hidden by default) -->
+        <div id="results-screen" class="text-center" style="display: none;">
+            <!-- Content dynamically generated -->
+        </div>
+
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, updateDoc, where, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        
+        // setLogLevel('debug'); // Firestore debug logs
+
+        // --- GLOBAL CONSTANTS & FIREBASE SETUP ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let app, db, auth;
+        let userId = 'loading'; // Will be updated after auth
+        let userName = 'Player'; // NEW: Store display name
+        let isAuthReady = false;
+
+        // Player/Game State Variables
+        let selectedGameId = null;
+        let isHost = false;
+        let maxPlayersLimit = 1; // Maximum players selected by host
+        let hostConfig = { topic: null, level: null, length: null, timer: null }; 
+        
+        // --- UTILITY: Array Shuffler (Fisher-Yates) ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+
+        // Quiz Data - Grouped by Topic and Level (Pool increased to 20 questions each)
+        const QUIZ_DATA = {
+            HTML: {
+                Basic: [
+                    { question: "HTML stands for?", options: ["Hyper Text Markup Language", "Home Tool Markup Language", "Highly Typed Markup Language", "Hyperlink and Text Markup"], answer: "Hyper Text Markup Language" },
+                    { question: "Which tag is used to create a hyperlink?", options: ["<link>", "<a>", "<url>", "<href>"], answer: "<a>" },
+                    { question: "What is the correct HTML element for inserting a line break?", options: ["<lb>", "<br>", "<break>", "<hr>"], answer: "<br>" },
+                    { question: "Which element is used to define the title of a document?", options: ["<header>", "<title>", "<meta>", "<body>"], answer: "<title>" },
+                    { question: "How do you define an unordered list in HTML?", options: ["<ol>", "<li>", "<ul>", "<dl>"], answer: "<ul>" },
+                    { question: "Which HTML attribute specifies an alternative text for an image?", options: ["title", "src", "alt", "href"], answer: "alt" },
+                    { question: "Which tag defines an input field?", options: ["<input>", "<field>", "<text>", "<type>"], answer: "<input>" },
+                    { question: "What is the largest header tag?", options: ["<h1>", "<h4>", "<h6>", "<head>"], answer: "<h1>" },
+                    { question: "Which element is used for short, inline quotation?", options: ["<q>", "blockquote", "<quote>", "<cite>"], answer: "<q>" },
+                    { question: "What does the <th> tag define?", options: ["Table header cell", "Table row", "Table body", "Table footer"], answer: "Table header cell" },
+                    // Extra questions to reach 20
+                    { question: "Which is the root element of an HTML page?", options: ["<head>", "<body>", "<html>", "<title>"], answer: "<html>" },
+                    { question: "Which tag defines a paragraph?", options: ["<p>", "<para>", "<line>", "<new>"], answer: "<p>" },
+                    { question: "Correct element for a button?", options: ["<click>", "<button>", "<input type='button'>", "<btn>"], answer: "<button>" },
+                    { question: "What is the purpose of the <head> element?", options: ["Content display", "Metadata container", "Script execution", "Page footer"], answer: "Metadata container" },
+                    { question: "How to define a list item?", options: ["<ul item>", "<li item>", "<li>", "<ol-item>"], answer: "<li>" },
+                    { question: "Which element defines document section or content?", options: ["<block>", "<section>", "<div>", "<part>"], answer: "<section>" },
+                    { question: "Which tag is used to specify JavaScript code?", options: ["<js>", "<script>", "<javascript>", "<codejs>"], answer: "<script>" },
+                    { question: "Which attribute specifies the URL for the link?", options: ["source", "link", "href", "url"], answer: "href" },
+                    { question: "HTML comments are enclosed in?", options: ["// Comment //", "/* Comment */", "<!-- Comment -->", "<! Comment !>"], answer: "<!-- Comment -->" },
+                    { question: "The correct element for media?", options: ["<media>", "<embed>", "<video>", "<data>"], answer: "<video>" },
+                ],
+                Intermediate: [
+                    { question: "What attribute is used to define inline styles?", options: ["font", "class", "styles", "style"], answer: "style" },
+                    { question: "Which tag is used to embed media files (video/audio)?", options: ["<src>", "<media>", "<embed>", "<object>"], answer: "<embed>" },
+                    { question: "What is the purpose of the 'rel' attribute in a <link> tag?", options: ["Relationship between document and linked file", "Relevance", "Read-only", "Reference"], answer: "Relationship between document and linked file" },
+                    { question: "Which HTML5 element is used to describe the page's main content?", options: ["<header>", "<section>", "<main>", "<article>"], answer: "<main>" },
+                    { question: "Which input type is used for a slider control?", options: ["range", "slider", "scroll", "input"], answer: "range" },
+                    { question: "What is the correct DOCTYPE declaration for HTML5?", options: ["<!DOCTYPE html>", "<!DOCTYPE HTML>", "<!DOCTYPE html5>", "<DOCTYPE HTML5>"], answer: "<!DOCTYPE html>" },
+                    { question: "What is the purpose of the 'async' attribute in a script tag?", options: ["Loads synchronously", "Loads asynchronously and executes immediately", "Defers script", "Forces execution order"], answer: "Loads asynchronously and executes immediately" },
+                    { question: "Which element is used to contain options in a select box?", options: ["<optionlist>", "<optgroup>", "<options>", "<select-options>"], answer: "<optgroup>" },
+                    { question: "The <datalist> tag is used to provide:", options: ["Pre-defined video lists", "Autocompletion suggestions for an input field", "A simple dropdown menu", "A list of definitions"], answer: "Autocompletion suggestions for an input field" },
+                    { question: "What is the 'srcset' attribute used for in <img>?", options: ["Defining CSS styles", "Responsive images/different resolutions", "Image source URL", "Image encoding type"], answer: "Responsive images/different resolutions" },
+                    // Extra questions to reach 20
+                    { question: "Which HTML5 API allows storing data locally in the user's browser?", options: ["LocalDB", "Session Storage", "Local Storage", "Cache API"], answer: "Local Storage" },
+                    { question: "What does the 'autofocus' attribute do?", options: ["Autoplays video", "Automatically focuses the input field on page load", "Auto-submits form", "Auto-fills text"], answer: "Automatically focuses the input field on page load" },
+                    { question: "Which element is used to mark text as no longer accurate?", options: ["<del>", "<strike>", "<cut>", "<s>"], answer: "<del>" },
+                    { question: "What is the purpose of the <thead> element?", options: ["Table main content", "Table footer", "Table heading container", "Table body"], answer: "Table heading container" },
+                    { question: "The 'method' attribute in <form> typically uses which values?", options: ["GET/SET", "LOAD/SAVE", "SEND/RECEIVE", "GET/POST"], answer: "GET/POST" },
+                    { question: "What is microdata in HTML5 used for?", options: ["Small images", "Semantic markup for search engines", "Mobile optimization", "Data encryption"], answer: "Semantic markup for search engines" },
+                    { question: "Which element is a self-closing tag?", options: ["<p>", "<div>", "<img>", "<a>"], answer: "<img>" },
+                    { question: "What is the purpose of the 'required' attribute?", options: ["Marks field as optional", "Marks field as necessary for form submission", "Requires capitalization", "Requires script loading"], answer: "Marks field as necessary for form submission" },
+                    { question: "Which semantic tag represents content indirectly related to the main content?", options: ["<section>", "<footer>", "<aside>", "<nav>"], answer: "<aside>" },
+                    { question: "What does the <canvas> element do?", options: ["Defines a button", "Used to draw graphics via scripting", "A layout container", "For table display"], answer: "Used to draw graphics via scripting" },
+                ],
+                Advanced: [
+                    { question: "What is the purpose of the 'defer' attribute in a script tag?", options: ["Loads script first", "Executes script after HTML parsing", "Executes script immediately", "Defers script loading indefinitely"], answer: "Executes script after HTML parsing" },
+                    { question: "What is the correct way to handle cross-origin requests for fonts?", options: ["<font-face>", "cors attribute", "crossorigin attribute", "font-origin"], answer: "crossorigin attribute" },
+                    { question: "Which HTML5 API allows storing data locally in the user's browser?", options: ["LocalDB", "Session Storage", "Local Storage", "Cache API"], answer: "Local Storage" },
+                    { question: "The <picture> element is primarily used for?", options: ["Image manipulation", "Responsive images", "3D graphics", "Video embedding"], answer: "Responsive images" },
+                    { question: "Which event fires when the user leaves an input field?", options: ["onfocusout", "onleave", "onblur", "onexit"], answer: "onblur" },
+                    { question: "What is the Web Storage API composed of?", options: ["Cookies and Cache", "Local Storage and Session Storage", "Session Storage and Cookies", "Web SQL and IndexDB"], answer: "Local Storage and Session Storage" },
+                    { question: "The purpose of a Content Security Policy (CSP) is:", options: ["Styling the content", "Preventing XSS attacks", "Managing cookies", "Defining layouts"], answer: "Preventing XSS attacks" },
+                    { question: "What does the 'nonce' attribute improve?", options: ["Loading speed", "Accessibility", "Security against XSS in inline scripts", "Image resolution"], answer: "Security against XSS in inline scripts" },
+                    { question: "Which HTML5 feature enables browser-based offline applications?", options: ["Web Workers", "Application Cache", "Local Storage", "IndexedDB"], answer: "Application Cache" },
+                    { question: "What is the role of the <template> tag?", options: ["Define a video template", "Hold content that is not rendered immediately upon page load", "Define a layout grid", "Apply styles globally"], answer: "Hold content that is not rendered immediately upon page load" },
+                    // Extra questions to reach 20
+                    { question: "What does the 'referrerpolicy' attribute control?", options: ["Link color", "Which referrer information is sent with requests", "Image loading policy", "Script execution order"], answer: "Which referrer information is sent with requests" },
+                    { question: "Which element can define a custom, vector graphic on the fly?", options: ["<canvas>", "<draw>", "<svg>", "<graphic>"], answer: "<svg>" },
+                    { question: "The Intersection Observer API is typically used for:", options: ["Form validation", "Lazy loading images", "Managing user input", "Network requests"], answer: "Lazy loading images" },
+                    { question: "What is the concept of Shadow DOM?", options: ["Hidden element", "Style encapsulation", "A dark theme mode", "CSS animations"], answer: "Style encapsulation" },
+                    { question: "Which element is used to mark up pre-formatted text?", options: ["<format>", "<pre>", "<text>", "<codeblock>"], answer: "<pre>" },
+                    { question: "The correct MIME type for a standard CSS file is:", options: ["text/css", "application/css", "style/css", "text/plain"], answer: "text/css" },
+                    { question: "Which attribute specifies a keyboard shortcut?", options: ["key", "shortcut", "accesskey", "tabindex"], answer: "accesskey" },
+                    { question: "What is the purpose of 'rel=preload'?", options: ["Load element slowly", "Pre-fetch a resource early in the loading process", "Load images only", "Stop resource loading"], answer: "Pre-fetch a resource early in the loading process" },
+                    { question: "What is the purpose of the 'ping' attribute on <a> tags?", options: ["Send a notification on hover", "Send POST request to a list of URLs when the link is clicked", "Ping the server periodically", "Measure network latency"], answer: "Send POST request to a list of URLs when the link is clicked" },
+                    { question: "Which attribute is essential for a downloadable link?", options: ["type", "download", "target", "href"], answer: "download" },
+                ],
+            },
+            CSS: { /* ... (20 unique questions per level) */
+                Basic: [
+                    { question: "Which property controls the text size?", options: ["text-style", "font-size", "text-size", "size"], answer: "font-size" },
+                    { question: "Which CSS property is used for outer space?", options: ["padding", "margin", "border", "clear"], answer: "margin" },
+                    { question: "What is the correct CSS syntax for making all <p> elements blue?", options: ["p.color=blue", "p {color: blue;}", "<p style='color:blue'>", "p:color-blue"], answer: "p {color: blue;}" },
+                    { question: "How do you select an element with id 'header'?", options: [".header", "#header", "*header", "id:header"], answer: "#header" },
+                    { question: "Which property is used to change the background color?", options: ["color", "bgcolor", "background-color", "text-color"], answer: "background-color" },
+                    { question: "How do you select all elements of class 'title'?", options: ["#title", "*title", ".title", "title"], answer: ".title" },
+                    { question: "Which property is used to make text bold?", options: ["font-size", "font-weight", "text-weight", "bold"], answer: "font-weight" },
+                    { question: "The box model consists of margin, border, padding, and...?", options: ["content", "style", "size", "display"], answer: "content" },
+                    { question: "Which CSS property defines the border around an element?", options: ["border-style", "outline", "margin", "padding"], answer: "border-style" },
+                    { question: "How do you include external CSS?", options: ["<style src='file.css'>", "<link rel='stylesheet' href='file.css'>", "<css file='file.css'>", "<external file='file.css'>"], answer: "<link rel='stylesheet' href='file.css'>" },
+                    // Extra questions to reach 20
+                    { question: "What property changes the font family?", options: ["font-face", "font-family", "font-type", "typeface"], answer: "font-family" },
+                    { question: "Which value of 'display' removes an element completely from the layout?", options: ["hidden", "none", "block", "invisible"], answer: "none" },
+                    { question: "What does 'float: left' do?", options: ["Aligns element to top", "Aligns element to left and allows text to wrap around it", "Moves element outside", "Changes font style"], answer: "Aligns element to left and allows text to wrap around it" },
+                    { question: "Which property sets the height of a line of text?", options: ["line-height", "text-height", "font-line", "line-size"], answer: "line-height" },
+                    { question: "In CSS, what is a pseudo-class?", options: ["A fake class", "Selects elements based on state (e.g., :hover)", "A class for links", "A styling property"], answer: "Selects elements based on state (e.g., :hover)" },
+                    { question: "Which color format uses alpha transparency?", options: ["HEX", "RGB", "RGBA", "HSL"], answer: "RGBA" },
+                    { question: "Which selector targets the first child of its parent?", options: [":first", ":child(1)", ":first-child", ":only-child"], answer: ":first-child" },
+                    { question: "The property for rounding corners is:", options: ["corner-radius", "border-radius", "round-corner", "border-style"], answer: "border-radius" },
+                    { question: "What is 'cascading' in CSS?", options: ["Order of animations", "The way styles fall off", "The process of determining which style rule applies", "A flow property"], answer: "The process of determining which style rule applies" },
+                    { question: "Which property sets the horizontal alignment of text?", options: ["text-align", "align-text", "text-position", "horizontal-align"], answer: "text-align" },
+                ],
+                Intermediate: [
+                    { question: "In Flexbox, the main axis alignment property is:", options: ["align-items", "justify-content", "flex-direction", "align-self"], answer: "justify-content" },
+                    { question: "What does CSS property 'z-index' control?", options: ["Element transparency", "Element height", "Element stacking order", "Element position"], answer: "Element stacking order" },
+                    { question: "What is the default value of the 'position' property?", options: ["relative", "absolute", "static", "fixed"], answer: "static" },
+                    { question: "Which unit is relative to the parent element's font size?", options: ["px", "vw", "rem", "em"], answer: "em" },
+                    { question: "What is the correct way to define a media query for print?", options: ["@media screen and print", "@print", "@media print", "@style print"], answer: "@media print" },
+                    { question: "Which property is used for creating space inside an element?", options: ["margin", "padding", "border", "spacing"], answer: "padding" },
+                    { question: "The 'box-sizing: border-box' does what?", options: ["Includes padding and border in the element's total width/height", "Excludes padding and border", "Sets the box style", "Defines shadow"], answer: "Includes padding and border in the element's total width/height" },
+                    { question: "Which value of 'position' is affected by scrolling?", options: ["absolute", "relative", "fixed", "sticky"], answer: "fixed" },
+                    { question: "Which pseudo-element targets the first line of an element?", options: [":first-line", "::line", "::first-letter", ":line-start"], answer: "::first-line" },
+                    { question: "In Grid Layout, what does 'grid-template-areas' define?", options: ["The size of tracks", "Named grid areas for placement", "Grid item order", "Row gaps"], answer: "Named grid areas for placement" },
+                    // Extra questions to reach 20
+                    { question: "What is the difference between visibility: hidden and display: none?", options: ["No difference", "hidden hides but reserves space, none removes it completely", "none hides but reserves space, hidden removes it completely", "Hidden only works in IE"], answer: "hidden hides but reserves space, none removes it completely" },
+                    { question: "Which function defines a CSS variable?", options: ["set-var()", "variable()", "var()", "css-var()"], answer: "var()" },
+                    { question: "The 'transform' property can use which function to resize an element?", options: ["move()", "rotate()", "scale()", "translate()"], answer: "scale()" },
+                    { question: "What is a keyframe rule used for?", options: ["Simple transitions", "Defining intermediate steps in a CSS animation", "Setting initial styles", "Applying styles to classes"], answer: "Defining intermediate steps in a CSS animation" },
+                    { question: "Which unit is relative to the size of the viewport width?", options: ["em", "rem", "vh", "vw"], answer: "vw" },
+                    { question: "What does 'flex-grow: 1' do?", options: ["Grows the element to maximum width", "Allows the element to take up available space", "Sets minimum width", "Shrinks the element"], answer: "Allows the element to take up available space" },
+                    { question: "Which property is shorthand for border-top, border-right, etc.?", options: ["borders", "border-sides", "border-width", "border"], answer: "border" },
+                    { question: "What is the purpose of the '::before' pseudo-element?", options: ["Selects element after", "Inserts content before an element's content", "Selects the first child", "Inserts content after an element's content"], answer: "Inserts content before an element's content" },
+                    { question: "Which property controls text spacing?", options: ["letter-spacing", "word-spacing", "line-spacing", "text-spacing"], answer: "letter-spacing" },
+                    { question: "What is a property used for 3D translation?", options: ["translateZ", "translateY", "translate3d", "translateX"], answer: "translate3d" },
+                ],
+                Advanced: [
+                    { question: "Which CSS function is used to apply multiple transformations?", options: ["transform-multiple", "combine", "matrix", "apply-transform"], answer: "matrix" },
+                    { question: "What is the purpose of the 'will-change' property?", options: ["Optimizing for upcoming animations", "Changing property names", "Defining a variable", "Setting a default state"], answer: "Optimizing for upcoming animations" },
+                    { question: "What is a 'BEM' selector?", options: ["Block Element Modifier", "Basic Element Model", "Browser Engine Method", "Boolean Element Matching"], answer: "Block Element Modifier" },
+                    { question: "Which property is used for fluid typography based on viewport width?", options: ["font-size: vw", "font-size: 100%", "font-size: calc()", "font-size: min()"], answer: "font-size: vw" },
+                    { question: "What is the use of the 'clip-path' property?", options: ["Clipping text", "Defining a visible area of an element", "Hiding overflow", "Creating animations"], answer: "Defining a visible area of an element" },
+                    { question: "Which selector allows you to select an element based on its attribute value?", options: [".attribute", "[attribute]", "attr(value)", "::attr"], answer: "[attribute]" },
+                    { question: "What does the 'contain' CSS property do?", options: ["Contains floats", "Limits the scope of style, layout, and paint for better performance", "Sets max width", "Contains media queries"], answer: "Limits the scope of style, layout, and paint for better performance" },
+                    { question: "The 'scroll-snap-type' property is used for:", options: ["Smooth scrolling", "Defining snap points when scrolling", "Disabling scrolling", "Enabling parallax effect"], answer: "Defining snap points when scrolling" },
+                    { question: "Which CSS value is used to inherit property value from the parent?", options: ["default", "parent", "inherit", "auto"], answer: "inherit" },
+                    { question: "What is the 'mix-blend-mode' property for?", options: ["Mixing colors in Sass", "Defining how an element's content should blend with its background", "Blending images", "A shorthand for multiple color properties"], answer: "Defining how an element's content should blend with its background" },
+                    // Extra questions to reach 20
+                    { question: "Which property is shorthand for transition-property, duration, timing-function, and delay?", options: ["animate", "transform", "transition", "keyframes"], answer: "transition" },
+                    { question: "What is the purpose of a CSS preprocessor like SASS?", options: ["Compressing images", "Adding programming capabilities to CSS", "Converting CSS to HTML", "Validating CSS syntax"], answer: "Adding programming capabilities to CSS" },
+                    { question: "Which pseudo-class selects elements based on their language?", options: [":lang", ":language", ":locale", ":culture"], answer: ":lang" },
+                    { question: "The 'aspect-ratio' property is used to:", options: ["Change image size", "Define preferred width-to-height ratio", "Set element opacity", "Align video elements"], answer: "Define preferred width-to-height ratio" },
+                    { question: "What does 'user-select: none' do?", options: ["Prevents user interaction", "Prevents text selection", "Hides the cursor", "Disables scrolling"], answer: "Prevents text selection" },
+                    { question: "What is the main difference between 'flex' and 'grid'?", options: ["Grid is 3D, flex is 2D", "Flex is 1D (rows OR columns), Grid is 2D (rows AND columns)", "Grid is older", "Flex is only for inline elements"], answer: "Flex is 1D (rows OR columns), Grid is 2D (rows AND columns)" },
+                    { question: "Which property defines custom fonts?", options: ["@font-style", "@font-family", "@font-definition", "@font-face"], answer: "@font-face" },
+                    { question: "The 'calc()' function is used for:", options: ["Scientific calculations", "Performing simple math operations within CSS values", "Calling JavaScript functions", "Color conversion"], answer: "Performing simple math operations within CSS values" },
+                    { question: "What is a 'child selector'?", options: ["div *", "div > p", "div + p", "div ~ p"], answer: "div > p" },
+                    { question: "The 'backdrop-filter' property is used for:", options: ["Applying graphical effects to the area behind an element", "Filtering search results", "Adjusting screen brightness", "Image cropping"], answer: "Applying graphical effects to the area behind an element" },
+                ],
+            },
+            JavaScript: {
+                Basic: [
+                    { question: "What method adds an element to the end of an array?", options: ["shift()", "add()", "push()", "insert()"], answer: "push()" },
+                    { question: "What is the output of typeof null?", options: ["null", "undefined", "object", "number"], answer: "object" },
+                    { question: "Which keyword declares a constant variable?", options: ["var", "let", "const", "final"], answer: "const" },
+                    { question: "How do you write 'Hello World' in an alert box?", options: ["alert('Hello World')", "msg('Hello World')", "alertBox('Hello World')", "msgBox('Hello World')"], answer: "alert('Hello World')" },
+                    { question: "How do you declare a function named myFunction?", options: ["function = myFunction()", "function myFunction()", "def myFunction()", "var myFunction = function"], answer: "function myFunction()" },
+                    { question: "What operator is used for concatenation?", options: ["&", "+", "++", "-"], answer: "+" },
+                    { question: "Which array method removes the first element?", options: ["pop()", "shift()", "removeFirst()", "splice(0,1)"], answer: "shift()" },
+                    { question: "What is NaN?", options: ["Not a Number", "Null and Number", "No action needed", "New array value"], answer: "Not a Number" },
+                    { question: "Which method is used to write to the browser console?", options: ["console.log()", "document.write()", "print()", "alert()"], answer: "console.log()" },
+                    { question: "What is the difference between == and ===?", options: ["No difference", "== compares value and type", "=== compares value and type", "=== is for assignment"], answer: "=== compares value and type" },
+                    // Extra questions to reach 20
+                    { question: "Which variable cannot be redeclared?", options: ["var", "let", "const", "all"], answer: "const" },
+                    { question: "The scope of 'let' is:", options: ["Global", "Function", "Block", "Class"], answer: "Block" },
+                    { question: "Which method converts a string to a number?", options: ["toInt()", "parseFloat()", "toNum()", "stringToNumber()"], answer: "parseFloat()" },
+                    { question: "How do you check if a variable is an array?", options: ["isArray(x)", "typeof x == array", "x.type == array", "Array.isArray(x)"], answer: "Array.isArray(x)" },
+                    { question: "What is the logical AND operator?", options: ["|", "&&", "!", "||"], answer: "&&" },
+                    { question: "Which property returns the length of a string?", options: ["size", "length", "count", "value"], answer: "length" },
+                    { question: "What is the result of 1 + '2' + 3?", options: ["123", "6", "'123'", "'12'"], answer: "'123'" },
+                    { question: "Which statement skips the current loop iteration?", options: ["break", "stop", "skip", "continue"], answer: "continue" },
+                    { question: "What is a JavaScript object?", options: ["A function", "A collection of properties", "A type of string", "An array"], answer: "A collection of properties" },
+                    { question: "What is the global execution context?", options: ["The current function", "The entire script environment", "A single variable", "The DOM"], answer: "The entire script environment" },
+                ],
+                Intermediate: [
+                    { question: "What is a closure?", options: ["A hidden variable", "A function having access to its parent scope after the parent function has closed", "A protected class", "A static method"], answer: "A function having access to its parent scope after the parent function has closed" },
+                    { question: "What does the 'use strict' statement do?", options: ["Enables strict typing", "Enables type checking", "Enforces stricter parsing and error handling", "Prevents variable reassignment"], answer: "Enforces stricter parsing and error handling" },
+                    { question: "Which method is used to remove the last element from an array?", options: ["shift()", "remove()", "splice()", "pop()"], answer: "pop()" },
+                    { question: "Which operator is used for exponentiation?", options: ["^", "**", "exp", "//"], answer: "**" },
+                    { question: "What is 'hoisting'?", options: ["Moving elements up", "Moving declarations to the top of the current scope", "A CSS technique", "A database concept"], answer: "Moving declarations to the top of the current scope" },
+                    { question: "The spread operator is written as:", options: ["$$", "...", "->", "::"], answer: "..." },
+                    { question: "What is a Promise state when an operation is completed successfully?", options: ["Pending", "Rejected", "Fulfilled", "Resolved"], answer: "Fulfilled" },
+                    { question: "Which method combines two or more arrays?", options: ["join()", "merge()", "concat()", "attach()"], answer: "concat()" },
+                    { question: "What is prototypal inheritance?", options: ["Classes inheriting from classes", "Objects inheriting from other objects", "Using promises", "A form of polymorphism"], answer: "Objects inheriting from other objects" },
+                    { question: "Which method executes a function once for each array element?", options: ["map()", "filter()", "forEach()", "reduce()"], answer: "forEach()" },
+                    // Extra questions to reach 20
+                    { question: "What is the result of '1' + 2 + 3?", options: ["123", "6", "'123'", "'12'"], answer: "'123'" },
+                    { question: "Which global method returns a new array with all elements that pass a test?", options: ["find()", "map()", "filter()", "forEach()"], answer: "filter()" },
+                    { question: "What does JSON stand for?", options: ["JavaScript Object Naming", "JavaScript Object Notation", "Java System Object Notation", "Joint Script Object Naming"], answer: "JavaScript Object Notation" },
+                    { question: "Which method serializes an object to a JSON string?", options: ["JSON.parse()", "JSON.toString()", "JSON.stringify()", "JSON.encode()"], answer: "JSON.stringify()" },
+                    { question: "What is event bubbling?", options: ["Event moves up the DOM tree", "Event moves down the DOM tree", "Creating a new event", "Stopping an event"], answer: "Event moves up the DOM tree" },
+                    { question: "Which operator checks if an object is an instance of a particular class?", options: ["typeof", "instanceof", "isA", "prototype"], answer: "instanceof" },
+                    { question: "What is a rest parameter?", options: ["Used for default arguments", "Gathers remaining arguments into an array", "Stops function execution", "Sets a timeout"], answer: "Gathers remaining arguments into an array" },
+                    { question: "Which property can be used to prevent adding new properties to an object?", options: ["Object.freeze()", "Object.seal()", "Object.preventExtensions()", "Object.stop()"], answer: "Object.preventExtensions()" },
+                    { question: "What does the 'this' keyword refer to in a regular function?", options: ["The function itself", "The window/global object (in non-strict mode)", "The object it belongs to", "The parent scope"], answer: "The window/global object (in non-strict mode)" },
+                    { question: "The correct syntax for an arrow function with one argument is:", options: ["() => {}", "arg => {}", "(arg) -> {}", "function(arg) => {}"], answer: "arg => {}" },
+                ],
+                Advanced: [
+                    { question: "What is the purpose of Promises?", options: ["To handle asynchronous operations", "To create loops", "To simplify synchronous code", "To declare global variables"], answer: "To handle asynchronous operations" },
+                    { question: "What is the difference between map() and forEach()?", options: ["map changes the original array", "forEach returns a new array", "map returns a new array", "They are identical"], answer: "map returns a new array" },
+                    { question: "What is the 'Event Loop'?", options: ["A continuous loop in the DOM", "A process that handles asynchronous callbacks", "A type of for loop", "A way to listen for events"], answer: "A process that handles asynchronous callbacks" },
+                    { question: "Which method is used to prevent the default action of an event?", options: ["event.stop()", "event.preventDefault()", "event.stopPropagation()", "event.cancel"], answer: "event.preventDefault()" },
+                    { question: "What is 'memoization'?", options: ["Storing function output for future use", "A type of variable scope", "Encrypting data", "A framework"], answer: "Storing function output for future use" },
+                    { question: "What is a Generator function in ES6?", options: ["A function that creates arrays", "A function that can be paused and resumed", "A function that generates random numbers", "A function that creates promises"], answer: "A function that can be paused and resumed" },
+                    { question: "What is the primary function of the 'Proxy' object?", options: ["Creating an array", "Creating a placeholder for network requests", "Defining custom behavior for fundamental operations (e.g., property lookup)", "Managing promises"], answer: "Defining custom behavior for fundamental operations (e.g., property lookup)" },
+                    { question: "What is the purpose of the 'Symbol' data type?", options: ["Creating unique identifiers for object properties", "A type of string", "A type of number", "For mathematical calculations"], answer: "Creating unique identifiers for object properties" },
+                    { question: "Which feature enables lazy loading of modules?", options: ["dynamic import()", "static import", "require()", "module.load()"], answer: "dynamic import()" },
+                    { question: "What is the role of 'Web Workers'?", options: ["Creating DOM elements", "Executing scripts in background threads", "Handling network requests", "Managing user input"], answer: "Executing scripts in background threads" },
+                    // Extra questions to reach 20
+                    { question: "What does 'async' keyword do in a function?", options: ["Forces synchronous execution", "Ensures the function returns a Promise", "Defines a class", "Handles errors"], answer: "Ensures the function returns a Promise" },
+                    { question: "The 'await' keyword can only be used inside a(n) ____ function.", options: ["regular", "callback", "async", "generator"], answer: "async" },
+                    { question: "Which method prevents any changes to an object (values and structure)?", options: ["Object.seal()", "Object.freeze()", "Object.preventExtensions()", "Object.lock()"], answer: "Object.freeze()" },
+                    { question: "What is a WeakMap?", options: ["Map with weak values", "Map with weak keys", "Map that holds weak references", "A slow map"], answer: "Map with weak keys" },
+                    { question: "The term 'destructuring' refers to:", options: ["Breaking down the DOM", "Extracting values from arrays or properties from objects into distinct variables", "Deleting objects", "Merging arrays"], answer: "Extracting values from arrays or properties from objects into distinct variables" },
+                    { question: "What does the `Reflect` API primarily do?", options: ["Create components", "Provide methods for interceptable JavaScript operations", "Handle HTTP requests", "Encrypt data"], answer: "Provide methods for interceptable JavaScript operations" },
+                    { question: "Which method is used to create a deep copy of an object (simple approach)?", options: ["Object.assign()", "Object.copy()", "JSON.parse(JSON.stringify(obj))", "new Object(obj)"], answer: "JSON.parse(JSON.stringify(obj))" },
+                    { question: "What is 'Temporal Dead Zone'?", options: ["A memory leak area", "The period where 'let' and 'const' variables exist but cannot be accessed", "A function scope", "An error type"], answer: "The period where 'let' and 'const' variables exist but cannot be accessed" },
+                    { question: "Which method checks if all elements in an array pass a test?", options: ["filter()", "some()", "every()", "includes()"], answer: "every()" },
+                    { question: "What is a 'Pure Function'?", options: ["A function that calls no other functions", "A function that does not rely on or modify variables outside its scope", "A function without arguments", "A function that returns a boolean"], answer: "A function that does not rely on or modify variables outside its scope" },
+                ],
+            },
+        };
+        
+        // Populate question data to meet the 10-question requirement per level for a dynamic quiz length
+        const getQuizQuestions = (topic, level, count) => {
+            // FIX 1: Shallow copy the base array to ensure shuffle doesn't affect the original QUIZ_DATA
+            const base = [...(QUIZ_DATA[topic]?.[level] || [])]; 
+            
+            // FIX 2: Shuffle the available questions before slicing
+            const shuffled = shuffleArray(base);
+
+            if (count <= shuffled.length) {
+                // Return only the requested number of unique questions
+                return shuffled.slice(0, count);
+            }
+            
+            // FIX 3: If requested count is greater than unique questions (e.g., asking for 50 questions when only 20 are available), 
+            // the quiz will contain all unique questions followed by repetitions of the unique set (this ensures no question repeats *until* the unique pool is exhausted).
+            const quiz = [];
+            for (let i = 0; i < count; i++) {
+                // Cycle through the shuffled unique set
+                quiz.push(shuffled[i % shuffled.length]); 
+            }
+            
+            // IMPORTANT NOTE: To prevent repetition entirely, the user must update QUIZ_DATA to contain at least 50 unique questions per level.
+            return quiz;
+        };
+        
+        // Quiz config state
+        const DEFAULT_QUIZ_LENGTH = 10; 
+        const DEFAULT_TIMER = 20;
+        const DEFAULT_MAX_PLAYERS = 5;
+
+        // Firestore Path Construction
+        const getGameDocRef = (gameId) => doc(db, 'artifacts', appId, 'public', 'data', 'multiplayer_quiz', gameId);
+
+        // --- DOM ELEMENT REFERENCES (All necessary elements are gathered here) ---
+        const nameInputScreen = document.getElementById('name-input-screen'); // NEW
+        const homeScreen = document.getElementById('home-screen');
+        const maxPlayersSelectionScreen = document.getElementById('max-players-selection-screen');
+        const hostJoinScreen = document.getElementById('host-join-screen');
+        const hostQuizConfigScreen = document.getElementById('host-quiz-config-screen');
+        const lobbyScreen = document.getElementById('lobby-screen'); // ADDED IN LAST FIX
+        const gameArea = document.getElementById('game-area');
+        const resultsScreen = document.getElementById('results-screen');
+        
+        const gameIdInput = document.getElementById('game-id-input');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const gameIdDisplay = document.getElementById('current-game-id');
+        const firebaseStatus = document.getElementById('firebase-status');
+        const maxPlayersDisplay = document.getElementById('max-players-display');
+        const hostMessage = document.getElementById('host-message');
+
+        const questionTextElement = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const currentQNumElement = document.getElementById('current-q-num');
+        const totalQNumElement = document.getElementById('total-q-num');
+        const currentScoreDisplay = document.getElementById('current-score');
+        const timerDisplay = document.getElementById('timer-display');
+        const playerScoresList = document.getElementById('player-scores-list');
+        const startHostButton = document.getElementById('start-host-button');
+        const limitDisplay = document.getElementById('limit-display'); // FIX: Added missing DOM reference
+        const greetingName = document.getElementById('greeting-name'); // NEW
+        const userNameInput = document.getElementById('user-name-input'); // NEW
+        
+        // --- References to Lobby Nested Elements (FIX for Error 2) ---
+        // These will be retrieved after the content is set in DOMContentLoaded
+        let joinInputContainer;
+        let hostMessageLobby;
+
+
+        // Game state and variables
+        let currentQuestionIndex = 0; // Local index for display
+        let timerInterval;
+        let unsubscribeGameSync;
+        let latestGameData = {}; // Stores the latest synchronized game state
+
+        // --- UTILITY FUNCTIONS ---
+        function setScreen(screenId) {
+            // Hides all primary screens and shows the selected one
+            [nameInputScreen, homeScreen, maxPlayersSelectionScreen, hostJoinScreen, hostQuizConfigScreen, lobbyScreen, gameArea, resultsScreen].forEach(screen => { // UPDATED
+                if (screen) screen.style.display = 'none';
+            });
+            const screen = document.getElementById(screenId);
+            if (screen) screen.style.display = 'block';
+        }
+
+        function showHomeScreen() {
+             greetingName.textContent = userName; // Set the greeting name
+             setScreen('home-screen');
+        }
+        
+        // NEW: Save name locally and move to home screen
+        function saveNameAndStart() {
+             const name = userNameInput.value.trim();
+             if (name.length < 2) {
+                alert("Please enter a valid name (at least 2 characters).");
+                return;
+             }
+             userName = name;
+             localStorage.setItem('quizUserName', userName); // Store name locally
+             showHomeScreen();
+        }
+        
+        // --- FLOW FUNCTIONS ---
+
+        function startQuizFlow() {
+            setScreen('max-players-selection-screen');
+        }
+
+        function selectMaxPlayers(max) {
+            const count = parseInt(max);
+            if (isNaN(count) || count < 1 || count > 50) {
+                alert("Please enter a valid player count between 1 and 50.");
+                return;
+            }
+            maxPlayersLimit = count;
+            maxPlayersDisplay.textContent = maxPlayersLimit;
+            setScreen('host-join-screen');
+        }
+
+        function showHostConfigScreen() {
+            isHost = true;
+            // Set initial defaults for host config and select first options
+            hostConfig = { topic: 'HTML', level: 'Basic', length: DEFAULT_QUIZ_LENGTH, timer: DEFAULT_TIMER }; // FIX: Initialized length
+            document.querySelector('#topic-selector [data-topic="HTML"]').classList.add('selected');
+            document.querySelector('#level-selector [data-level="Basic"]').classList.add('selected');
+            document.querySelector(`#length-selector [data-length="${DEFAULT_QUIZ_LENGTH}"]`).classList.add('selected'); // FIX: Select default length
+            document.querySelector(`#timer-selector [data-timer="${DEFAULT_TIMER}"]`).classList.add('selected');
+            startHostButton.disabled = false;
+            startHostButton.classList.remove('disabled-button');
+
+            setScreen('host-quiz-config-screen');
+        }
+
+        function selectHostConfig(type, value, element) {
+            hostConfig[type] = type === 'timer' || type === 'length' ? parseInt(value) : value;
+
+            // Remove selected class from all siblings and add to current
+            const parent = element.parentElement;
+            parent.querySelectorAll('.selector-box').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // Check if all configs are set to enable button
+            if (hostConfig.topic && hostConfig.level && hostConfig.length && hostConfig.timer) { // FIX: Check for length
+                startHostButton.disabled = false;
+                startHostButton.classList.remove('disabled-button');
+                document.getElementById('config-error').style.display = 'none';
+            }
+        }
+        
+        // FIX: Access nested elements of lobbyScreen after DOMContentLoaded
+        function showLobbyScreen() {
+            setScreen('lobby-screen');
+
+            // Ensure nested elements exist before accessing 'style' (FIX for Error 2)
+            if (joinInputContainer && hostMessageLobby) {
+                // Hide the join input if we are the host
+                if (isHost) {
+                    joinInputContainer.style.display = 'none';
+                    hostMessageLobby.style.display = 'block';
+                } else {
+                    joinInputContainer.style.display = 'block';
+                    hostMessageLobby.style.display = 'none';
+                }
+            } else {
+                 console.error("Lobby nested elements are not initialized correctly.");
+            }
+            
+            document.getElementById('current-game-id').textContent = selectedGameId; // This is a global element
+            document.getElementById('game-id-link').textContent = selectedGameId;
+        }
+
+
+        // --- FIREBASE LOGIC ---
+
+        async function setupFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    firebaseStatus.textContent = "Error: Firebase config missing.";
+                    firebaseStatus.style.display = 'block';
+                    return;
+                }
+                
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate user
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId.substring(0, 8) + '...';
+                        isAuthReady = true;
+                        firebaseStatus.textContent = "Firestore connected. Ready.";
+                        firebaseStatus.style.display = 'block';
+                        
+                        // NEW: Check for saved user name
+                        const savedName = localStorage.getItem('quizUserName');
+                        if (savedName) {
+                            userName = savedName;
+                            showHomeScreen();
+                        } else {
+                            setScreen('name-input-screen'); // Show name input if not set
+                        }
+
+                    } else {
+                        userId = 'anonymous';
+                        userIdDisplay.textContent = userId;
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase setup error:", error);
+                firebaseStatus.textContent = `Firebase setup failed: ${error.message}`;
+                firebaseStatus.classList.remove('bg-yellow-100');
+                firebaseStatus.classList.add('bg-red-100', 'text-red-700');
+                firebaseStatus.style.display = 'block';
+            }
+        }
+        
+        /**
+         * Host creates a new game document in Firestore with configuration.
+         */
+        async function hostGame() {
+            if (!isAuthReady) return alert("Please wait for authentication to complete.");
+            if (!hostConfig.topic || !hostConfig.level || !hostConfig.length || !hostConfig.timer) { // FIX: Check for length
+                document.getElementById('config-error').style.display = 'block';
+                return;
+            }
+
+            const newGameId = crypto.randomUUID().substring(0, 6).toUpperCase();
+            selectedGameId = newGameId;
+            const gameRef = getGameDocRef(newGameId);
+            
+            const quizQuestions = getQuizQuestions(hostConfig.topic, hostConfig.level, hostConfig.length); // FIX: Use selected length
+            
+            const initialGameState = {
+                hostId: userId,
+                status: 'waiting',
+                maxPlayers: maxPlayersLimit, // Khiladiyon ki adhiktam sankhaya
+                currentQuestionIndex: 0,
+                timeStarted: Date.now(),
+                questionStartedTime: Date.now(),
+                players: {
+                    [userId]: {
+                        id: userId,
+                        name: userName, // Use the stored name
+                        score: 0,
+                        lastAnswer: null
+                    }
+                },
+                quiz: quizQuestions,
+                topic: hostConfig.topic,
+                level: hostConfig.level,
+                timer: hostConfig.timer, // Host ne chuna hua timer
+                length: quizQuestions.length
+            };
+
+            try {
+                await setDoc(gameRef, initialGameState);
+                showLobbyScreen();
+                syncGame(newGameId); // Start host sync
+            } catch (error) {
+                console.error("Error hosting game: ", error);
+                alert("Failed to host game. See console for details.");
+            }
+        }
+        
+        /**
+         * Joins an existing game by updating the game document.
+         */
+        async function joinGame(gameId) {
+            if (!isAuthReady) return alert("Please wait for authentication to complete.");
+
+            selectedGameId = gameId || gameIdInput.value.toUpperCase();
+            if (!selectedGameId) return alert("Please enter a Game ID.");
+
+            const gameRef = getGameDocRef(selectedGameId);
+
+            try {
+                const docSnap = await getDoc(gameRef);
+                if (!docSnap.exists()) {
+                    return alert(`Game ID ${selectedGameId} not found.`);
+                }
+                
+                const gameData = docSnap.data();
+
+                if (gameData.status === 'finished') {
+                    return alert(`Game ${selectedGameId} is already finished.`);
+                }
+                
+                const currentPlayersCount = Object.keys(gameData.players || {}).length;
+                if (currentPlayersCount >= gameData.maxPlayers) {
+                    return alert(`Game ${selectedGameId} is full! Max players: ${gameData.maxPlayers}`);
+                }
+
+                // Add current player to the game
+                await updateDoc(gameRef, {
+                    [`players.${userId}`]: {
+                        id: userId,
+                        name: userName, // Use the stored name
+                        score: 0,
+                        lastAnswer: null
+                    }
+                });
+
+                isHost = false;
+                enterGameRoom(selectedGameId, gameData);
+
+            } catch (error) {
+                console.error("Error joining game: ", error);
+                alert("Failed to join game. See console for details.");
+            }
+        }
+
+        /**
+         * Switches the view to the game room and starts real-time sync.
+         */
+        function enterGameRoom(gameId, gameData) {
+            setScreen('game-area');
+            gameIdDisplay.textContent = gameId;
+            totalQNumElement.textContent = gameData.length;
+            limitDisplay.textContent = gameData.maxPlayers;
+            
+            // Show host message if game hasn't started
+            if (gameData.status === 'waiting') {
+                 hostMessage.style.display = 'block';
+                 questionTextElement.textContent = `Waiting for Host (${gameData.hostId.substring(0,4)}...) to start the game...`;
+                 optionsContainer.innerHTML = '';
+            } else {
+                 hostMessage.style.display = 'none';
+            }
+
+            syncGame(gameId);
+        }
+
+        /**
+         * Sets up the real-time listener for the game document.
+         */
+        function syncGame(gameId) {
+            if (unsubscribeGameSync) {
+                unsubscribeGameSync(); // Stop previous listener if any
+            }
+
+            const gameRef = getGameDocRef(gameId);
+            
+            unsubscribeGameSync = onSnapshot(gameRef, (doc) => {
+                if (!doc.exists()) {
+                    alert("Game ended by host.");
+                    window.location.reload();
+                    return;
+                }
+                
+                latestGameData = doc.data();
+                
+                // 1. Check Game Status
+                if (latestGameData.status === 'finished') {
+                    showResultsScreen(latestGameData);
+                    return;
+                }
+
+                // 2. Update Scores (Yeh sabhi khiladiyon ke liye zaroori hai)
+                updateLiveScores(latestGameData.players);
+
+                // 3. Update Current Question Index LOCALLY
+                const newIndex = latestGameData.currentQuestionIndex;
+
+                if (newIndex >= 0 && newIndex < latestGameData.quiz.length) {
+                    if (newIndex !== currentQuestionIndex || latestGameData.status === 'playing') {
+                        currentQuestionIndex = newIndex; // Update the local index
+                        displayQuestion(latestGameData.quiz[currentQuestionIndex]);
+                    }
+                    
+                    // 4. Start Timer if needed (only if playing)
+                    if (latestGameData.status === 'playing') {
+                        startTimer(latestGameData);
+                    }
+                    
+                } else if (latestGameData.status === 'playing') {
+                    // Host Logic: Advance to results if out of questions
+                    if (isHost && newIndex >= latestGameData.length) {
+                        updateDoc(getGameDocRef(selectedGameId), { status: 'finished' });
+                    }
+                }
+                
+                // 5. Host Logic: Check for next question trigger (only for the host)
+                if (isHost && latestGameData.status === 'playing') {
+                    checkHostTurn(latestGameData);
+                }
+                
+                // 6. Update UI for current player
+                currentQNumElement.textContent = currentQuestionIndex + 1;
+                currentScoreDisplay.textContent = latestGameData.players[userId]?.score || 0; // Current user ka score
+                
+                // If in lobby, check if host started the game
+                if (latestGameData.status === 'playing' && document.getElementById('lobby-screen')?.style.display === 'block' && !isHost) {
+                     enterGameRoom(selectedGameId, latestGameData);
+                }
+
+            }, (error) => {
+                console.error("Game sync failed:", error);
+                alert("Connection lost. Please refresh.");
+            });
+            
+            // Host logic to start the game from lobby
+            if (isHost && document.getElementById('lobby-screen')?.style.display === 'block') {
+                const hostStartButton = document.getElementById('host-start-button');
+                if (hostStartButton) {
+                    hostStartButton.onclick = () => {
+                        updateDoc(getGameDocRef(selectedGameId), { status: 'playing', questionStartedTime: Date.now() });
+                        enterGameRoom(selectedGameId, latestGameData);
+                    };
+                }
+            }
+        }
+        
+        /**
+         * Host's responsibility: Check if time is up or all players have answered.
+         */
+        function checkHostTurn(gameData) {
+            const gameRef = getGameDocRef(selectedGameId);
+            const players = gameData.players;
+            const TIME_LIMIT_MS = gameData.timer * 1000;
+            const questionTimeElapsed = Date.now() - gameData.questionStartedTime;
+            const timeUp = questionTimeElapsed > TIME_LIMIT_MS;
+            
+            // Check if all players (who are still in the game) have answered
+            const activePlayers = Object.values(players);
+            const answeredPlayersCount = activePlayers.filter(player => player.lastAnswer !== null).length;
+            const allAnswered = answeredPlayersCount === activePlayers.length; // FIX: Ensure we compare with active players count
+
+            if (timeUp || allAnswered) {
+                // Time to move to the next question
+                const nextIndex = gameData.currentQuestionIndex + 1;
+                
+                if (nextIndex < gameData.length) {
+                    clearInterval(timerInterval);
+                    updateDoc(gameRef, {
+                        currentQuestionIndex: nextIndex,
+                        questionStartedTime: Date.now(),
+                        // Reset lastAnswer for all players for the next question
+                        players: Object.fromEntries(
+                            Object.entries(players).map(([playerId, player]) => [
+                                playerId, 
+                                { ...player, lastAnswer: null } // Reset lastAnswer
+                            ])
+                        )
+                    });
+                } else {
+                    updateDoc(getGameDocRef(selectedGameId), { status: 'finished' });
+                }
+            }
+        }
+        
+        /**
+         * Shows the final results screen, highlighting the top 3 winners.
+         */
+        function showResultsScreen(gameData) {
+            if (unsubscribeGameSync) unsubscribeGameSync();
+            clearInterval(timerInterval);
+            setScreen('results-screen');
+
+            resultsScreen.innerHTML = `
+                <h2 class="text-3xl font-extrabold text-gray-900 mb-4 text-center">🏆 Game Over! 🏆</h2>
+                <p class="text-lg text-indigo-700 mb-8 font-bold text-center">Final Scoreboard: ID ${selectedGameId}</p>
+                <div id="final-leaderboard" class="space-y-3 p-4 bg-gray-50 rounded-lg shadow-inner"></div>
+                <button onclick="window.location.reload()" class="selection-button btn-green text-white hover:bg-green-700 shadow-xl mt-8 w-full">
+                    Play Another Game
+                </button>
+            `;
+
+            const finalLeaderboard = document.getElementById('final-leaderboard');
+            const sortedPlayers = Object.values(gameData.players).sort((a, b) => b.score - a.score);
+
+            sortedPlayers.forEach((player, index) => {
+                const rank = index + 1;
+                let rankColor = 'text-gray-700';
+                let rankText = `#${rank}`;
+
+                if (rank === 1) { rankColor = 'text-yellow-600'; rankText = "🥇 1st Place"; }
+                else if (rank === 2) { rankColor = 'text-gray-500'; rankText = "🥈 2nd Place"; }
+                else if (rank === 3) { rankColor = 'text-amber-700'; rankText = "🥉 3rd Place"; }
+                else { rankColor = 'text-gray-500'; }
+
+
+                const boardItem = document.createElement('div');
+                boardItem.className = `flex justify-between items-center p-3 rounded-lg ${player.id === userId ? 'bg-indigo-200 font-bold' : 'bg-white'} shadow-md`;
+                
+                boardItem.innerHTML = `
+                    <span class="${rankColor} font-extrabold text-lg">${rankText}</span>
+                    <span class="font-semibold text-lg">${player.name}</span>
+                    <span class="text-green-700 font-bold text-xl">${player.score} pts</span>
+                `;
+                finalLeaderboard.appendChild(boardItem);
+            });
+        }
+
+
+        // --- GAME LOGIC (SYNCED) ---
+
+        /**
+         * Starts the countdown timer based on game state.
+         */
+        function startTimer(gameData) {
+            // Check if the current player has already answered the current question
+            if (gameData.players[userId]?.lastAnswer !== null) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = "Done";
+                timerDisplay.classList.remove('low-time');
+                return;
+            }
+
+            clearInterval(timerInterval); // Ensure only one runs
+
+            // Calculate remaining time based on when the question started
+            const TIME_LIMIT = gameData.timer;
+            const questionTimeElapsed = Date.now() - gameData.questionStartedTime;
+            let timeLeft = TIME_LIMIT - Math.floor(questionTimeElapsed / 1000);
+            
+            if (timeLeft < 0) timeLeft = 0;
+
+            timerDisplay.textContent = timeLeft;
+            timerDisplay.classList.remove('low-time');
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft < 0) { // Safety check
+                    timeLeft = 0;
+                }
+                
+                timerDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 5 && timeLeft > 0) {
+                    timerDisplay.classList.add('low-time');
+                } else {
+                    timerDisplay.classList.remove('low-time');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "0";
+                }
+            }, 1000);
+        }
+
+        /**
+         * Displays the question and options based on synchronized state.
+         */
+        function displayQuestion(questionData) {
+            clearInterval(timerInterval); // Stop timer before rendering
+            
+            optionsContainer.innerHTML = '';
+            questionTextElement.textContent = questionData.question;
+            
+            // Reset button states
+            optionsContainer.classList.remove('disabled-button');
+
+            // Loop through options
+            questionData.options.forEach(optionText => {
+                const optionButton = document.createElement('button');
+                optionButton.textContent = optionText;
+                
+                optionButton.className = 'option-button p-4 bg-gray-50 text-gray-800 text-base font-medium rounded-xl hover:bg-indigo-100 transition duration-150 w-full text-left shadow-md';
+
+                optionButton.addEventListener('click', function() {
+                    submitAnswer(this, questionData.answer);
+                });
+
+                optionsContainer.appendChild(optionButton);
+            });
+            
+            // Check if current player already answered this question
+            const player = latestGameData.players[userId];
+            if (player && player.lastAnswer !== null) {
+                // If already answered, disable all buttons and show feedback
+                showAnswerFeedback(player.lastAnswer, questionData.answer);
+            } else {
+                // Start timer after rendering if game status allows
+                if (latestGameData.status === 'playing') {
+                    startTimer(latestGameData);
+                }
+            }
+        }
+
+        /**
+         * Submits the answer to Firestore and applies local feedback.
+         */
+        async function submitAnswer(selectedButton, correctAnswer) {
+            // Check if the player has already answered to prevent double submission
+            if (latestGameData.players[userId]?.lastAnswer !== null) return; 
+
+            clearInterval(timerInterval); // Stop local timer
+            
+            const selectedOption = selectedButton.textContent.trim();
+            const gameRef = getGameDocRef(selectedGameId);
+
+            // 1. Apply local visual feedback immediately
+            showAnswerFeedback(selectedOption, correctAnswer);
+
+            // 2. Calculate score change (1 point if correct, 0 otherwise)
+            const isCorrect = selectedOption === correctAnswer;
+            const scoreChange = isCorrect ? 1 : 0;
+            
+            try {
+                // 3. Update Firestore transactionally
+                await updateDoc(gameRef, {
+                    // Update player score and last answer
+                    [`players.${userId}.score`]: latestGameData.players[userId].score + scoreChange,
+                    [`players.${userId}.lastAnswer`]: selectedOption,
+                });
+                
+                console.log(`Answer submitted. Correct: ${isCorrect}, Score Change: ${scoreChange}`);
+                
+            } catch (error) {
+                console.error("Error submitting answer:", error);
+                // Re-enable buttons if submission fails
+                const allButtons = optionsContainer.querySelectorAll('button');
+                allButtons.forEach(button => button.classList.remove('disabled-button', 'correct-answer', 'wrong-answer'));
+                alert("Failed to submit answer. Check connection.");
+            }
+        }
+        
+        /**
+         * Helper function to apply visual feedback locally.
+         */
+        function showAnswerFeedback(selectedOption, correctAnswer) {
+             const allButtons = optionsContainer.querySelectorAll('button');
+             
+             allButtons.forEach(button => {
+                // Disable all buttons to prevent further clicks/timer interference
+                button.classList.add('disabled-button'); 
+                const buttonText = button.textContent.trim();
+                
+                if (buttonText === correctAnswer) {
+                    // Correct button (Green)
+                    button.classList.remove('hover:bg-indigo-100', 'bg-gray-50');
+                    button.classList.add('correct-answer');
+                } else if (buttonText === selectedOption) {
+                    // User's selected but wrong button (Red)
+                    button.classList.remove('hover:bg-indigo-100', 'bg-gray-50');
+                    button.classList.add('wrong-answer');
+                }
+            });
+        }
+        
+        /**
+         * Updates the score list display.
+         */
+        function updateLiveScores(players) {
+            playerScoresList.innerHTML = '';
+            
+            // Convert to array, sort client-side by score
+            const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+            
+            sortedPlayers.forEach(player => {
+                const scoreItem = document.createElement('div');
+                const isCurrentPlayer = player.id === userId;
+                scoreItem.className = `flex justify-between p-2 rounded-md ${isCurrentPlayer ? 'bg-indigo-300 font-extrabold shadow-inner' : 'bg-white'}`;
+                scoreItem.innerHTML = `
+                    <span>${player.name} ${isCurrentPlayer ? '(You)' : ''}</span>
+                    <span class="text-green-700 font-bold">${player.score}</span>
+                `;
+                playerScoresList.appendChild(scoreItem);
+            });
+        }
+
+
+        // --- APPLICATION STARTUP ---
+        setupFirebase();
+        
+        // --- EXPOSE GLOBAL FUNCTIONS ---
+        window.startQuizFlow = startQuizFlow;
+        window.selectMaxPlayers = selectMaxPlayers;
+        window.showHostConfigScreen = showHostConfigScreen;
+        window.hostGame = hostGame;
+        window.joinGame = joinGame;
+        window.selectHostConfig = selectHostConfig;
+        window.saveNameAndStart = saveNameAndStart; // NEW
+
+        // --- LOBBY HTML CONTENT (Added to be shown via setScreen) ---
+        // Moved the lobby content here to be part of the flow management
+        document.addEventListener('DOMContentLoaded', () => {
+             const lobbyScreenElement = document.getElementById('lobby-screen'); // Ensure element is captured
+
+             if (lobbyScreenElement) { // Check if the element exists (Fix for the last error)
+                 lobbyScreenElement.innerHTML = `
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-6 text-center">4. Game Lobby</h2>
+                    <div id="host-message-lobby" class="text-center p-4 bg-yellow-100 rounded-lg border-dashed border-2 border-yellow-500 mb-6">
+                        <p class="text-lg font-bold text-yellow-800">Your Game ID is:</p>
+                        <p id="game-id-link" class="text-3xl font-extrabold text-red-600 mb-3"></p>
+                        <p class="text-sm text-gray-700 mb-4">Share this ID with up to <span id="lobby-max-players" class="font-bold text-indigo-700">--</span> players!</p>
+                        <p class="text-md font-semibold text-gray-800 mb-4">Current Players: <span id="lobby-player-count">1</span></p>
+                        <button id="host-start-button" class="selection-button btn-green text-white shadow-xl py-3">
+                            START GAME (Only Host)
+                        </button>
+                    </div>
+                    
+                    <div id="join-input-container" class="p-4 bg-gray-50 rounded-lg border">
+                        <h3 class="text-xl font-bold mb-3">Join a Game</h3>
+                        <input type="text" id="game-id-input-lobby" placeholder="Enter Game ID" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 mb-3">
+                        <button onclick="joinGame(document.getElementById('game-id-input-lobby').value)" class="selection-button w-full btn-blue text-white shadow-xl py-3">
+                            Join Game
+                        </button>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-gray-800 mt-8 mb-4">Active Players in Lobby:</h3>
+                    <div id="lobby-players-list" class="space-y-2 text-left max-h-48 overflow-y-auto p-2 bg-white rounded-lg border">
+                        <p class="text-gray-500 text-center">Waiting...</p>
+                    </div>
+                 `;
+
+                 // --- Retrieve NESTED REFERENCES after content is set (FIX for Error 2) ---
+                 joinInputContainer = document.getElementById('join-input-container');
+                 hostMessageLobby = document.getElementById('host-message-lobby');
+
+                 const lobbyMaxPlayers = document.getElementById('lobby-max-players');
+                 const lobbyPlayerCount = document.getElementById('lobby-player-count');
+                 const gameIdLink = document.getElementById('game-id-link');
+
+
+                 // Update syncGame to handle lobby player count
+                 const originalSyncGame = window.syncGame;
+                 window.syncGame = (gameId) => {
+                     originalSyncGame(gameId); // Call original sync logic
+                     
+                     // Add lobby specific checks
+                     const lobbyRef = getGameDocRef(gameId);
+                     onSnapshot(lobbyRef, (doc) => {
+                        const data = doc.data();
+                        if (!data) return;
+                        
+                        if (document.getElementById('lobby-screen')?.style.display === 'block') {
+                            lobbyMaxPlayers.textContent = data.maxPlayers || 'N/A';
+                            const playerCount = Object.keys(data.players || {}).length;
+                            lobbyPlayerCount.textContent = playerCount;
+                            gameIdLink.textContent = data.hostId === userId ? data.id : '---';
+                            
+                            // Update lobby player list
+                            const list = document.getElementById('lobby-players-list');
+                            if (list) {
+                                list.innerHTML = '';
+                                Object.values(data.players).forEach(player => {
+                                    const item = document.createElement('p');
+                                    item.className = player.id === data.hostId ? 'font-bold text-indigo-700' : 'text-gray-600';
+                                    item.textContent = `${player.name} ${player.id === data.hostId ? '(Host)' : '(Player)'}`;
+                                    list.appendChild(item);
+                                });
+                            }
+                        }
+                     });
+                 };
+             }
+        });
+    </script>
+</body>
+</html>

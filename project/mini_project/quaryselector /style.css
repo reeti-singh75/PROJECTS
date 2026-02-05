@@ -1,0 +1,12 @@
+.box {
+    width: 200px;
+    height: 200px;
+    background-color: lightblue;
+    border: 2px solid black;
+}
+body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+

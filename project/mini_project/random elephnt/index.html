@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Elephant Image</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 20px;
+        }
+        #eleImg {
+            width: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Random Elephant Image Generator</h2>
+
+    <button onclick="getElephant()">Show Elephant</button>
+
+    <br>
+    <img id="eleImg" src="" alt="Elephant Image">
+
+    <script>
+        function getElephant() {
+            // Placeholder text
+            document.getElementById("eleImg").src = "";
+            
+            fetch("https://api.elephant-api.com/elephants/random")
+                .then(response => response.json())
+                .then(data => {
+                    // API se image URL
+                    const imgUrl = data[0].image;
+
+                    // Set the image
+                    document.getElementById("eleImg").src = imgUrl;
+                })
+                .catch(error => {
+                    console.log("Error:", error);
+                });
+        }
+    </script>
+
+</body>
+</html>
